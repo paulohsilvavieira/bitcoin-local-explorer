@@ -1,6 +1,6 @@
 # bitcoin-local-explorer
 
-Node `bitcoind` em **regtest** com auto-mining (incluindo transações internas simuladas) + [btc-rpc-explorer](https://github.com/janoside/btc-rpc-explorer) como explorer, num único `docker-compose.yml` que roda igual local e no [Coolify](https://coolify.io/). Sem transação real de bitcoin, sem custo de infra externa — tudo roda local via Docker. Irmão do [ethereum-local-explorer](../ethereum/ethereum-local-explorer), mesmo padrão de fluxo.
+Node `bitcoind` em **regtest** com auto-mining (incluindo transações internas simuladas) + [btc-rpc-explorer](https://github.com/janoside/btc-rpc-explorer) como explorer
 
 ## Estrutura
 
