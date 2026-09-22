@@ -1,0 +1,35 @@
+map $http_upgrade $connection_upgrade {
+  default upgrade;
+  ''      close;
+}
+
+server {
+    listen 80;
+    server_name _;
+    proxy_http_version 1.1;
+
+    # RPC do bitcoind, para scripts/apps externas. Exige o header
+    # X-RPC-Token. O proxy troca o token pela Basic Auth real do bitcoind
+    # antes de repassar — quem chama nunca vê RPC_PASSWORD.
+    location /rpc {
+        if ($http_x_rpc_token != "${RPC_TOKEN}") {
+            return 401;
+        }
+        rewrite ^/rpc/?(.*)$ /$1 break;
+        proxy_pass            http://bitcoin-node:18443;
+        proxy_set_header      Authorization "Basic ${RPC_BASIC_AUTH}";
+        proxy_set_header      Host $host;
+        proxy_read_timeout    300s;
+    }
+
+    location / {
+        proxy_pass            http://explorer:3002;
+        proxy_set_header      Host $host;
+        proxy_set_header      X-Real-IP $remote_addr;
+        proxy_set_header      X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header      X-Forwarded-Proto $scheme;
+        proxy_set_header      Upgrade $http_upgrade;
+        proxy_set_header      Connection $connection_upgrade;
+        proxy_cache_bypass    $http_upgrade;
+    }
+}

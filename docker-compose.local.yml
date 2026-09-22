@@ -1,0 +1,8 @@
+# Uso local (sem HTTPS): publica o explorer+RPC em :9001. A porta do
+# bitcoin-node não é publicada — RPC só é alcançável via proxy em /rpc
+# (com token) ou de dentro da rede do compose (ex: `docker compose exec
+# bitcoin-node bitcoin-cli ...`).
+services:
+  proxy:
+    ports:
+      - '9001:80'

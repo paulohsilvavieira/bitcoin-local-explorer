@@ -1,0 +1,17 @@
+.git
+.github
+node_modules
+cache/
+.env
+.env-sample
+README.md
+TODO.md
+roadmap.md
+raw/
+docs/*.md
+docs/*.conf
+.eslintrc.js
+.gitattributes
+Dockerfile
+docker-compose.yml
+.dockerignore

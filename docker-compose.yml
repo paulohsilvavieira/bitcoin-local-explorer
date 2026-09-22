@@ -1,0 +1,82 @@
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  bitcoin-data:
+  electrs-data:
+
+services:
+  bitcoin-node:
+    build:
+      context: ./bitcoin-node
+    restart: always
+    environment:
+      RPC_USER: ${RPC_USER:-admin}
+      RPC_PASSWORD: ${RPC_PASSWORD:?}
+      WALLET_NAME: ${WALLET_NAME:-bitcoin-wallet-regtest}
+      MINING_INTERVAL: ${MINING_INTERVAL:-10}
+      TX_MIN_AMOUNT: ${TX_MIN_AMOUNT:-0.0001}
+      TX_MAX_AMOUNT: ${TX_MAX_AMOUNT:-0.01}
+      TX_MIN_FEE_RATE: ${TX_MIN_FEE_RATE:-1}
+      TX_MAX_FEE_RATE: ${TX_MAX_FEE_RATE:-20}
+      TX_MIN_BALANCE: ${TX_MIN_BALANCE:-0.01}
+    volumes:
+      - bitcoin-data:/bitcoin
+    healthcheck:
+      test: ["CMD", "bitcoin-cli", "-regtest", "-conf=/bitcoin/bitcoin.conf", "getblockchaininfo"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 6
+
+  electrs:
+    image: mempool/electrs:latest
+    restart: always
+    command:
+      - --network=regtest
+      - --daemon-rpc-addr=bitcoin-node:18443
+      - --jsonrpc-import
+      - --cookie=${RPC_USER:-admin}:${RPC_PASSWORD:?}
+      - --db-dir=/data/db
+      - --electrum-rpc-addr=0.0.0.0:50001
+      - --http-addr=0.0.0.0:3000
+      - --monitoring-addr=0.0.0.0:4224
+      - --utxos-limit=5000
+      - --electrum-txs-limit=5000
+      - --timestamp
+    volumes:
+      - electrs-data:/data
+    depends_on:
+      bitcoin-node:
+        condition: service_healthy
+
+  explorer:
+    build:
+      context: ./btc-rpc-explorer
+    restart: always
+    environment:
+      BTCEXP_HOST: 0.0.0.0
+      BTCEXP_BITCOIND_URI: bitcoin://${RPC_USER:-admin}:${RPC_PASSWORD:?}@bitcoin-node:18443?timeout=10000
+      BTCEXP_SLOW_DEVICE_MODE: "false"
+      BTCEXP_ADDRESS_API: electrum
+      BTCEXP_ELECTRUM_SERVERS: tcp://electrs:50001
+    depends_on:
+      bitcoin-node:
+        condition: service_healthy
+      electrs:
+        condition: service_started
+
+  proxy:
+    build:
+      context: ./proxy
+    restart: always
+    depends_on:
+      - explorer
+      - bitcoin-node
+    environment:
+      RPC_TOKEN: ${RPC_TOKEN:?}
+      RPC_USER: ${RPC_USER:-admin}
+      RPC_PASSWORD: ${RPC_PASSWORD:?}
+    expose:
+      - "80"
